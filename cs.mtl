@@ -1,0 +1,102 @@
+# Blender 3.6.1 MTL File: 'cs.blend'
+# www.blender.org
+
+newmtl 79px-Letter_c.svg
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 2
+map_Kd C:/Users/agria/OneDrive/Pictures/79px-Letter_c.svg.png
+map_d C:/Users/agria/OneDrive/Pictures/79px-Letter_c.svg.png
+
+newmtl Letter_s.svg
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 2
+map_Kd C:/Users/agria/OneDrive/Pictures/Letter_s.svg.png
+map_d C:/Users/agria/OneDrive/Pictures/Letter_s.svg.png
+
+newmtl Material
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.512160 0.460297 0.327782
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+
+newmtl Material.001
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.000000 0.800000 0.002231
+Ks 0.500000 0.500000 0.500000
+Ke 0.335449 8.500000 0.265176
+Ni 1.450000
+d 1.000000
+illum 2
+
+newmtl Material.002
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.000000 0.800000 0.002231
+Ks 0.500000 0.500000 0.500000
+Ke 0.335449 8.500000 0.265176
+Ni 1.450000
+d 1.000000
+illum 2
+
+newmtl Material.003
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.000000 0.800000 0.002231
+Ks 0.500000 0.500000 0.500000
+Ke 0.335449 8.500000 0.265176
+Ni 1.450000
+d 1.000000
+illum 2
+
+newmtl Material.004
+Ns 360.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl Material.005
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 0.887769 0.596740
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+
+newmtl _CompSci___
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 2
+map_Kd C:/Users/agria/Downloads/_CompSci __.png
+map_d C:/Users/agria/Downloads/_CompSci __.png
+
+newmtl enter-12
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 2
+map_Kd C:/Users/agria/OneDrive/Pictures/enter-12.png
+map_d C:/Users/agria/OneDrive/Pictures/enter-12.png
