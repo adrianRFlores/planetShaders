@@ -4,6 +4,29 @@
 #include "fragment.hpp"
 #include "FastNoiseLite.h"
 
+FastNoiseLite sunNoise;
+FastNoiseLite joolNoise;
+FastNoiseLite laytheNoise;
+
+glm::vec3 sunColor0(8.0f/255.0f, 99.0f/255.0f, 213.0f/255.0f);
+glm::vec3 sunColor(115.0f/255.0f, 92.0f/255.0f, 221.0f/255.0f);
+glm::vec3 sunColorDark(0.0f/255.0f, 0.0f/255.0f, 0.0f/255.0f);
+
+
+void initNoise( ) {
+    
+    sunNoise.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
+    sunNoise.SetSeed(1337);
+    sunNoise.SetFrequency(0.04f);
+    sunNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    sunNoise.SetFractalOctaves(5);
+    sunNoise.SetFractalLacunarity(2.0f);
+    sunNoise.SetFractalGain(0.4f);
+    sunNoise.SetFractalWeightedStrength(0.6f);
+    sunNoise.SetCellularReturnType(FastNoiseLite::CellularReturnType_Distance2Div);
+
+}
+
 Vertex vertexShaderPlanet(const Vertex& vertex, const Uniforms& uniforms, const glm::mat4& model) {
 
     glm::vec4 clipSpaceVertex = uniforms.projection * uniforms.view * model * glm::vec4(vertex.pos, 1.0f);
@@ -36,83 +59,20 @@ Fragment fragmentShader(Fragment& fragment) {
     return fragment;
 }
 
-Fragment tierra(Fragment& fragment) {
-    Color color;
-
-    glm::vec3 groundColor = glm::vec3(0.44f, 0.51f, 0.33f);
-    glm::vec3 oceanColor = glm::vec3(0.12f, 0.38f, 0.57f);
-    glm::vec3 cloudColor = glm::vec3(1.0f, 1.0f, 1.0f);
-
-    float x = fragment.originalPos.x;
-    float y = fragment.originalPos.y;
-    float z = fragment.originalPos.z;
-    /* glm::vec2 uv = glm::vec2(fragment.originalPos.x, fragment.originalPos.y); */
-    float radius = sqrt(x*x + y*y + z*z);
-
-    /* glm::vec2 uv = glm::vec2( */
-    /*     atan2(x, z), */
-    /*     acos(y/sqrt(x*x + y*y + z*z)) */
-    /* ); */
-
-    glm::vec3 uv = glm::vec3(
-        atan2(x, z),
-        acos(y / radius),
-        radius
-    );
-
-    glm::vec3 uv2 = glm::vec3(
-        atan2(x + 10, z),
-        acos(y / radius),
-        radius
-    );
-
-
-    FastNoiseLite noiseGenerator;
-    noiseGenerator.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-    /* noiseGenerator.SetRotationType3D(FastNoiseLite::RotationType3D_ImproveXYPlanes); */
-    /* noiseGenerator.DomainWarp(uv.x, uv.y, uv.z); */
-
-    float ox = 1200.0f;
-    float oy = 3000.0f;
-    float zoom = 100.0f;
-
-    /* float noiseValue1 = noiseGenerator.GetNoise(uv.x * zoom, uv.y * zoom); */
-    /* float noiseValue2 = noiseGenerator.GetNoise(uv.y * zoom + 1000.0f, uv.x * zoom + 1000.0f); */
-    /* float noiseValue = (noiseValue1 + noiseValue2) * 0.5f; */
-
-    float noiseValue1 = noiseGenerator.GetNoise(uv.x * zoom, uv.y * zoom, uv.z * zoom);
-    float noiseValue2 = noiseGenerator.GetNoise(uv2.x * zoom + ox, uv2.y * zoom, uv2.z * zoom + oy);
-    float noiseValue = (noiseValue1 + noiseValue2) * 0.5f;
-
-
-
-    glm::vec3 tmpColor = (noiseValue < 0.2f) ? oceanColor : groundColor;
-
-    float oxc = 5500.0f;
-    float oyc = 6900.0f;
-    float zoomc = 300.0f;
-
-    float noiseValueC = noiseGenerator.GetNoise((uv.x + oxc) * zoomc, (uv.y + oyc) * zoomc);
-    
-    if (noiseValueC > 0.5f) {
-        tmpColor = cloudColor;
-    }
-
-
-    color = Color(tmpColor.x * 255, tmpColor.y * 255, tmpColor.z * 255);
-
-    
-
-    fragment.color = Color(color.r * fragment.light, color.g * fragment.light, color.b * fragment.light);
-
-    return fragment;
-}
-
 Fragment sunShader(Fragment& fragment) {
+
+    glm::vec3 pos = fragment.originalPos;
+
+    float ox = 1000.0f;
+    float oy = 1000.0f;
+    float zoom = 800.0f;
+
+    float noise = sunNoise.GetNoise((pos.x + ox) * zoom, (pos.y + oy) * zoom, (pos.z + ox) * zoom);
+
     fragment.color = Color(
-        fragment.color.r,
-        fragment.color.g,
-        fragment.color.b,
+        sunColor.x * 255.0f * (1.0f - noise),
+        sunColor.y * 255.0f * (1.0f - noise),
+        sunColor.z * 255.0f * (1.0f - noise),
         fragment.color.a
     );
 

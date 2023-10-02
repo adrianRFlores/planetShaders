@@ -33,5 +33,5 @@ glm::mat4 createProjectionMatrix(const float fov, const float aspectRatio, const
 }
 
 glm::mat4 createModelMatrix(const glm::mat4& translation, const glm::mat4& rotation, const glm::mat4& scale){
-    return rotation * translation * scale;
+    return translation * rotation * scale;
 }

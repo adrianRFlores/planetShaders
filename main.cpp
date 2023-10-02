@@ -209,7 +209,7 @@ int main(int argc, char* argv[]) {
 
     glm::vec3 translationVector(0.0f, 0.0f, 0.0f);
     glm::vec3 rotationAxis(0.0f, 1.0f, 0.0f);
-    glm::vec3 scaleFactor(1.0f, 1.0f, 1.0f);
+    glm::vec3 scaleFactor(2.0f, 2.0f, 2.0f);
 
     glm::mat4 translation = glm::translate(glm::mat4(1.0f), translationVector);
     glm::mat4 scale = glm::scale(glm::mat4(1.0f), scaleFactor);
@@ -242,7 +242,7 @@ int main(int argc, char* argv[]) {
     jool.model = createModelMatrix(
         glm::translate(glm::mat4(1.0f), glm::vec3(jool.radius, 0.0f, jool.radius)),
         glm::rotate(glm::mat4(1.0f), jool.rotationSpeed, rotationAxis),
-        glm::scale(glm::mat4(1.0f), glm::vec3(0.6f, 0.6f, 0.6f))
+        glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f))
     );
 
     laythe.radius = 2;
@@ -250,7 +250,7 @@ int main(int argc, char* argv[]) {
     laythe.model = createModelMatrix(
         glm::translate(glm::mat4(1.0f), glm::vec3(jool.radius + laythe.radius, 0.0f, jool.radius + laythe.radius)),
         glm::rotate(glm::mat4(1.0f), laythe.rotationSpeed, rotationAxis),
-        glm::scale(glm::mat4(1.0f), glm::vec3(0.25f, 0.25, 0.25f))
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.6f, 0.6f, 0.6f))
     );
 
     planets.push_back(jool);
@@ -264,6 +264,10 @@ int main(int argc, char* argv[]) {
     bool running = true;
     SDL_Event event;
     Uint32 frameStart, frameTime;
+
+    initNoise();
+
+    int osc = 0;
  
     L = camera.pos;
 
@@ -298,11 +302,13 @@ int main(int argc, char* argv[]) {
                         camera.pos.z += 1;
                         break;
 
-                    case SDLK_r:
-                        uniforms.projection = createProjectionMatrix(++fov, FRAMEBUFFER_WIDTH / FRAMEBUFFER_HEIGHT, 0.01f, 1000.0f);
+                    case SDLK_g:
+                        camera.pos = glm::vec3(0.0f, 20.0f, 1.0f);
+                        camera.target = glm::vec3(0.0f, 0.0f, 0.0f);
                         break;
+
                     case SDLK_f:
-                        uniforms.projection = createProjectionMatrix(--fov, FRAMEBUFFER_WIDTH / FRAMEBUFFER_HEIGHT, 0.01f, 1000.0f);
+                        camera.pos = glm::vec3(0.0f, 1.0f, 15.0f);
                         break;
                 }
             }
@@ -315,7 +321,16 @@ int main(int argc, char* argv[]) {
         #pragma omp parallel for
         for ( int i = 0; i < planets.size() ; i++ ) {
             planets[i].model = glm::rotate(planets[i].model, planets[i].rotationSpeed, rotationAxis);
-            planets[i].model = glm::translate(planets[i].model, glm::vec3(planets[i].radius * cos(planets[i].rotationSpeed), 0.0f, planets[i].radius * sin(planets[i].rotationSpeed)));
+
+            /*planets[i].model = glm::translate(
+                planets[i].model,
+                glm::vec3(
+                    planets[i].radius * cos(planets[i].rotationSpeed),
+                    0.0f,
+                    planets[i].radius * sin(planets[i].rotationSpeed)
+                )
+            );*/
+
             renderPlanet(planets[i], uniforms);
         }
 
