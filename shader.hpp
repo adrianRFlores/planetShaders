@@ -8,10 +8,9 @@ FastNoiseLite sunNoise;
 FastNoiseLite joolNoise;
 FastNoiseLite laytheNoise;
 
-glm::vec3 sunColor0(8.0f/255.0f, 99.0f/255.0f, 213.0f/255.0f);
 glm::vec3 sunColor(115.0f/255.0f, 92.0f/255.0f, 221.0f/255.0f);
-glm::vec3 sunColorDark(0.0f/255.0f, 0.0f/255.0f, 0.0f/255.0f);
-
+glm::vec3 joolColor1(170.0/255.0f, 89.0f/255.0f, 120.0f/255.0f);
+glm::vec3 joolColor2(64.0f/255.0f, 79.0f/255.0f, 138.0f/255.0f);
 
 void initNoise( ) {
     
@@ -24,6 +23,18 @@ void initNoise( ) {
     sunNoise.SetFractalGain(0.4f);
     sunNoise.SetFractalWeightedStrength(0.6f);
     sunNoise.SetCellularReturnType(FastNoiseLite::CellularReturnType_Distance2Div);
+
+    joolNoise.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
+    joolNoise.SetSeed(1337);
+    joolNoise.SetFrequency(0.025f);
+    joolNoise.SetFractalType(FastNoiseLite::FractalType_Ridged);
+    joolNoise.SetFractalOctaves(5);
+    joolNoise.SetFractalLacunarity(2.7f);
+    joolNoise.SetFractalGain(0.4f);
+    joolNoise.SetFractalWeightedStrength(0.2f);
+    //sunNoise.SetCellularReturnType(FastNoiseLite::CellularReturnType_Distance2Div);
+    joolNoise.SetDomainWarpType(FastNoiseLite::DomainWarpType_OpenSimplex2);
+    joolNoise.SetDomainWarpAmp(35.0f);
 
 }
 
@@ -80,14 +91,35 @@ Fragment sunShader(Fragment& fragment) {
 }
 
 Fragment joolShader(Fragment& fragment) {
+    glm::vec3 pos = fragment.originalPos;
+
+    float ox = 1000.0f;
+    float oy = 1000.0f;
+    float zoom = 1000.0f;
+
+    float noise = joolNoise.GetNoise((pos.x + ox) * zoom, (pos.y + oy) * zoom, (pos.z + ox) * zoom);
+
+    glm::vec3 tmpColor;
+
+    if ( noise > 0.5f ) {
+        tmpColor = joolColor1;
+    }
+    else if ( noise < 0.5f ) {
+        tmpColor = joolColor2;
+        noise = 1.0f - noise;
+    } /*else {
+        tmpColor = (joolColor1 + joolColor2) * 0.5f;
+    }*/
+
     fragment.color = Color(
-        fragment.color.r * fragment.light,
-        fragment.color.g * fragment.light,
-        fragment.color.b * fragment.light,
+        tmpColor.x * 255.0f,
+        tmpColor.y * 255.0f,
+        tmpColor.z * 255.0f,
         fragment.color.a
     );
 
     return fragment;
+
 }
 
 Fragment laytheShader(Fragment& fragment) {
