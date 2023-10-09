@@ -72,9 +72,9 @@ std::pair<float, float> barycentricCoordinates(const glm::ivec2& P, const glm::v
         glm::vec3(C.y - A.y, B.y - A.y, A.y - P.y)
     );
 
-    /*if (abs(bary.z) < 1) {
+    if (abs(bary.z) < 1) {
         return std::make_pair(-1, -1);
-    }*/
+    }
 
     return std::make_pair(
         bary.y / bary.z,
@@ -82,8 +82,7 @@ std::pair<float, float> barycentricCoordinates(const glm::ivec2& P, const glm::v
     );    
 }
 
-std::vector<Fragment> filledTriangle(const Vertex& a, const Vertex& b, const Vertex& c, std::vector<Fragment>& fragments) {
-  //std::vector<Fragment> fragments;
+void filledTriangle(const Vertex& a, const Vertex& b, const Vertex& c, std::vector<Fragment>& fragments, const glm::vec3 Light) {
   glm::vec3 A = a.pos;
   glm::vec3 B = b.pos;
   glm::vec3 C = c.pos;
@@ -107,16 +106,12 @@ std::vector<Fragment> filledTriangle(const Vertex& a, const Vertex& b, const Ver
 
       if (w < epsilon || v < epsilon || u < epsilon)
         continue;
-          
-      //double z = A.z * w + B.z * v + C.z * u;
-      /*
-       glm::vec3 normal = glm::normalize( 
-           a.normal * w + b.normal * v + c.normal * u
-       );*/
 
-      glm::vec3 lightDirection = glm::normalize( L - glm::vec3(w, v, u) );
+      double z = A.z * w + B.z * v + C.z * u;
 
-      float intensity = glm::dot( glm::normalize( a.normal * w + b.normal * v + c.normal * u), lightDirection);
+      if(z < epsilon) continue;
+
+      float intensity = glm::dot( glm::normalize( a.normal * w + b.normal * v + c.normal * u), Light);
       
       glm::vec3 worldPos = a.worldPos * w + b.worldPos * v + c.worldPos * u;
       glm::vec3 originalPos = a.originalPos * w + b.originalPos * v + c.originalPos * u;
@@ -126,13 +121,12 @@ std::vector<Fragment> filledTriangle(const Vertex& a, const Vertex& b, const Ver
           P,
           worldPos,
           originalPos,
-          A.z * w + B.z * v + C.z * u,
+          z,
           Color(255, 255, 255),
           intensity}
       );
     }
 }
-  //return fragments;
 }
 
 glm::vec3 getCenter(std::vector<Vertex> transformedVertices, std::vector<float> boundingBox){
@@ -156,15 +150,23 @@ glm::vec3 getCenter(std::vector<Vertex> transformedVertices, std::vector<float> 
     return glm::vec3(maxX + minX, maxY + minY, maxZ + minZ) * 0.5f;
 }
 
-void rasterizePlanet(const std::vector<std::vector<Vertex>>& assembledVertices, const Uniforms& uniforms, const glm::mat4& model, std::vector<Fragment>& fragments) {
+void rasterizePlanet(const std::vector<std::vector<Vertex>>& assembledVertices, const Uniforms& uniforms, const glm::mat4& model, std::vector<Fragment>& fragments, const glm::vec3 Light) {
+
+    glm::vec4 a;
+    glm::vec4 b;
+    glm::vec4 c;
 
     for (std::vector<Vertex> triangleVertices : assembledVertices) {
-        filledTriangle(triangleVertices[0], triangleVertices[1], triangleVertices[2], fragments);
+        /*a = uniforms.projection * uniforms.view * model * glm::vec4(triangleVertices[0].pos, 1.0f);
+        b = uniforms.projection * uniforms.view * model * glm::vec4(triangleVertices[1].pos, 1.0f);
+        c = uniforms.projection * uniforms.view * model * glm::vec4(triangleVertices[2].pos, 1.0f);
+        */
+        filledTriangle(triangleVertices[0], triangleVertices[1], triangleVertices[2], fragments, Light);
     }
 
 }
 
-void renderPlanet(const Planet& planet, const Uniforms& uniforms) {
+void renderPlanet(Planet& planet, const Uniforms& uniforms) {
 
     std::vector<Vertex> transformedVertices(planet.vertexArray.size());
 
@@ -176,10 +178,12 @@ void renderPlanet(const Planet& planet, const Uniforms& uniforms) {
     std::vector<std::vector<Vertex>> assembledVertices = primitiveAssembly(transformedVertices);
 
     std::vector<Fragment> fragments;
-    rasterizePlanet(assembledVertices, uniforms, planet.model, fragments);
+    rasterizePlanet(assembledVertices, uniforms, planet.model, fragments, planet.calcLight(L));
 
+    Fragment frag;
+    
     for (int i = 0; i<fragments.size(); i++){
-        const Fragment& frag = planet.shader(fragments[i]);
+        frag = planet.shader(fragments[i]);
         point(frag);
     }
 
@@ -200,19 +204,11 @@ int main(int argc, char* argv[]) {
     bool loaded = loadOBJ("sphere.obj", vertices, faces, normals, tex);
     std::vector<Vertex> vertexArray = setupVertexArray(vertices, faces, normals);
 
-    glm::mat4 model = glm::mat4(1);
     glm::mat4 view = glm::mat4(1);
     glm::mat4 projection = glm::mat4(1);
 
-    uniforms.model = model,
+    uniforms.model = glm::mat4(1.0f),
     uniforms.view = view;
-
-    glm::vec3 translationVector(0.0f, 0.0f, 0.0f);
-    glm::vec3 rotationAxis(0.0f, 1.0f, 0.0f);
-    glm::vec3 scaleFactor(2.0f, 2.0f, 2.0f);
-
-    glm::mat4 translation = glm::translate(glm::mat4(1.0f), translationVector);
-    glm::mat4 scale = glm::scale(glm::mat4(1.0f), scaleFactor);
 
     Camera camera;
     camera.pos = glm::vec3(0.0f, 1.0f, 15.0f);
@@ -220,45 +216,30 @@ int main(int argc, char* argv[]) {
     camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
 
     float fov = 45.0f;
-    //createProjectionMatrix(FOV, aspect ratio, nearClip, farClip)
     uniforms.projection = createProjectionMatrix(fov, FRAMEBUFFER_WIDTH / FRAMEBUFFER_HEIGHT, 0.01f, 1000.0f);
     uniforms.viewport = createViewportMatrix(FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT);
 
-    glm::mat4 rotation = glm::mat4(1.0f);
+    Planet sun, gas, moon;
 
-    Planet jool, sun, laythe;
     std::vector<Planet> planets;
 
-    jool.shader = joolShader;
+    sun.setOrbit(0, 2.0f);
+    gas.setOrbit(4, 0.9f);
+    moon.setOrbit(6, 1.2f);
     sun.shader = sunShader;
-    laythe.shader = laytheShader;
+    gas.shader = joolShader;
+    moon.shader = laytheShader;
+    sun.scale = glm::vec3(2.0f, 2.0f, 2.0f);
+    gas.scale = glm::vec3(1.0f, 1.0f, 1.0f);
+    moon.scale = glm::vec3(0.8f, 0.8f, 0.8f);
 
-    sun.model = createModelMatrix(translation, rotation, scale);
-    sun.radius = 0;
-    sun.rotationSpeed = 0.05f;
-
-    jool.radius = 1;
-    jool.rotationSpeed = 0.08f;
-    jool.model = createModelMatrix(
-        glm::translate(glm::mat4(1.0f), glm::vec3(jool.radius, 0.0f, jool.radius)),
-        glm::rotate(glm::mat4(1.0f), jool.rotationSpeed, rotationAxis),
-        glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f))
-    );
-
-    laythe.radius = 2;
-    laythe.rotationSpeed = 0.03f;
-    laythe.model = createModelMatrix(
-        glm::translate(glm::mat4(1.0f), glm::vec3(jool.radius + laythe.radius, 0.0f, jool.radius + laythe.radius)),
-        glm::rotate(glm::mat4(1.0f), laythe.rotationSpeed, rotationAxis),
-        glm::scale(glm::mat4(1.0f), glm::vec3(0.6f, 0.6f, 0.6f))
-    );
-
-    planets.push_back(jool);
     planets.push_back(sun);
-    planets.push_back(laythe);
+    planets.push_back(gas);
+    planets.push_back(moon);
 
     for( Planet& planet : planets ) {
         planet.vertexArray = vertexArray;
+        planet.rotation = glm::vec3(0.0f, 1.0f, 0.0f);
     }
 
     bool running = true;
@@ -266,10 +247,9 @@ int main(int argc, char* argv[]) {
     Uint32 frameStart, frameTime;
 
     initNoise();
-
-    int osc = 0;
  
-    L = camera.pos;
+    int time = 0;
+    int cameraAngle = 0;
 
     while (running) {
 
@@ -288,12 +268,12 @@ int main(int argc, char* argv[]) {
                         camera.pos.y -= 1;
                         break;
                     case SDLK_a:
-                        camera.target.x -= cameraRadius * cos(angle);
-                        camera.target.z -= cameraRadius * sin(angle);
+                        cameraAngle++;
+                        camera.target = glm::vec3(cameraRadius * sin(angle * cameraAngle), 0.0f, cameraRadius * cos(angle * cameraAngle));
                         break;
                     case SDLK_d:
-                        camera.target.x += cameraRadius * cos(angle);
-                        camera.target.z += cameraRadius * sin(angle);
+                        cameraAngle--;
+                        camera.target = glm::vec3(cameraRadius * sin(angle * cameraAngle), 0.0f, cameraRadius * cos(angle * cameraAngle));
                         break;
                     case SDLK_w:
                         camera.pos.z -= 1;
@@ -320,18 +300,8 @@ int main(int argc, char* argv[]) {
 
         #pragma omp parallel for
         for ( int i = 0; i < planets.size() ; i++ ) {
-            planets[i].model = glm::rotate(planets[i].model, planets[i].rotationSpeed, rotationAxis);
-
-            planets[i].model = glm::translate(
-                planets[i].model,
-                glm::vec3(
-                    planets[i].radius * cos(glm::radians(osc)),
-                    0.0f,
-                    planets[i].radius * sin(planets[i].rotationSpeed)
-                )
-            );
-
-            renderPlanet(planets[i], uniforms);
+            planets[i].setModel(time++);
+            //renderPlanet(planets[i], uniforms);
         }
 
         renderBuffer(renderer);
