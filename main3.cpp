@@ -21,6 +21,8 @@ glm::vec3 L(0.0f, 0.0f, 0.0f);
 const int cameraRadius = 1;
 const float angle = 0.00005f;
 
+std::vector<Fragment> orbitPoints;
+
 SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
 
@@ -83,6 +85,12 @@ std::pair<float, float> barycentricCoordinates(const glm::ivec2& P, const glm::v
 }
 
 void filledTriangle(const Vertex& a, const Vertex& b, const Vertex& c, std::vector<Fragment>& fragments, const glm::vec3 Light) {
+
+  if( (a.clipSpace.z <= -0.5f && b.clipSpace.z <= -0.5f && c.clipSpace.z <= -0.5f) ){//|| 
+  //(a.clipSpace.w <= 0.0f && b.clipSpace.w <= 0.0f && c.clipSpace.w <= 0.0f) ){
+    return;
+  }
+
   glm::vec3 A = a.pos;
   glm::vec3 B = b.pos;
   glm::vec3 C = c.pos;
@@ -104,14 +112,18 @@ void filledTriangle(const Vertex& a, const Vertex& b, const Vertex& c, std::vect
       float u = barycentric.second;
       float epsilon = 1e-10;
 
-      if (w < epsilon || v < epsilon || u < epsilon)
-        continue;
+      if (w < epsilon || v < epsilon || u < epsilon) continue;
 
       double z = A.z * w + B.z * v + C.z * u;
 
       if(z < epsilon) continue;
 
-      float intensity = glm::dot( glm::normalize( a.normal * w + b.normal * v + c.normal * u), Light);
+      //double z2 = a.clipSpace.z * w + b.clipSpace.z * v + c.clipSpace.z * u;
+      //double w2 = a.clipSpace.w * w + b.clipSpace.w * v + c.clipSpace.w * u;
+
+      //if(z2 <= -5.0f && w2 <= -5.0f) continue;
+
+      float intensity = glm::dot( glm::normalize( a.normal * w + b.normal * v + c.normal * u), Light );
 
       glm::vec3 worldPos = a.worldPos * w + b.worldPos * v + c.worldPos * u;
       glm::vec3 originalPos = a.originalPos * w + b.originalPos * v + c.originalPos * u;
@@ -126,7 +138,7 @@ void filledTriangle(const Vertex& a, const Vertex& b, const Vertex& c, std::vect
           intensity}
       );
     }
-}
+  }
 }
 
 void rasterizePlanet(const std::vector<std::vector<Vertex>>& assembledVertices, const Uniforms& uniforms, const glm::mat4& model, std::vector<Fragment>& fragments, const glm::vec3 Light) {
@@ -166,6 +178,7 @@ void renderMoon(Moon& Moon, const Uniforms& uniforms, const glm::vec3 parentTran
 
     #pragma omp parallel for
     for (int i = 0; i<Moon.vertexArray.size(); i++){
+
         transformedVertices[i] = vertexShaderPlanet(Moon.vertexArray[i], uniforms, Moon.model);
     }
     
@@ -206,6 +219,29 @@ void renderRings(PlanetaryRing& rings, const Uniforms& uniforms) {
 
 }
 
+void renderShip(miscObj& ship, const Uniforms& uniforms) {
+
+    std::vector<Vertex> transformedVertices(ship.vertexArray.size());
+
+    #pragma omp parallel for
+    for (int i = 0; i<ship.vertexArray.size(); i++){
+        transformedVertices[i] = vertexShaderPlanet(ship.vertexArray[i], uniforms, ship.model);
+    }
+    
+    std::vector<std::vector<Vertex>> assembledVertices = primitiveAssembly(transformedVertices);
+
+    std::vector<Fragment> fragments;
+    rasterizePlanet(assembledVertices, uniforms, ship.model, fragments, ship.calcLight(L));
+
+    Fragment frag;
+    
+    for (int i = 0; i<fragments.size(); i++){
+        frag = ship.shader(fragments[i]);
+        point(frag);
+    }
+
+}
+
 int main(int argc, char* argv[]) {
 
     SDL_Init(SDL_INIT_EVERYTHING);
@@ -229,45 +265,49 @@ int main(int argc, char* argv[]) {
     uniforms.view = view;
 
     Camera camera;
-    camera.pos = glm::vec3(0.0f, 1.0f, 15.0f);
-    camera.target = glm::vec3(0.0f, 0.0f, 0.0f);
+    camera.pos = glm::vec3(0.0f, 0.0f, 15.0f);
+    camera.target = glm::vec3(0.0f, 0.0f, 13.0f);
     camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
 
     float fov = 45.0f;
     uniforms.projection = createProjectionMatrix(fov, FRAMEBUFFER_WIDTH / FRAMEBUFFER_HEIGHT, 1.0f, 1000.0f);
     uniforms.viewport = createViewportMatrix(FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT);
 
-    Planet sun, gas;
+    Planet sun, rocky, gas;
     Moon moon;
     PlanetaryRing rings;
 
     vertices = {};
     normals = {};
-    tex = {}; //future-proofing
+    tex = {};
     faces = {};
 
-    loaded = loadOBJ("rings4.obj", vertices, faces, normals, tex);
+    loaded = loadOBJ("rings7.obj", vertices, faces, normals, tex);
     std::vector<Vertex> ringsVertexArray = setupVertexArray(vertices, faces, normals);
     rings.vertexArray = ringsVertexArray;
 
     std::vector<Planet> planets;
 
     sun.setOrbit(0, 2.0f, 1.5f);
-    gas.setOrbit(4, 1.3f, 2.0f);
+    rocky.setOrbit(4, 1.3f, 2.0f);
+    gas.setOrbit(9, 0.8f, 1.8f);
     moon.setOrbit(1, 2.2f, 1.0f);
     sun.shader = sunShader;
-    gas.shader = joolShader;
+    rocky.shader = joolShader;
     moon.shader = laytheShader;
+    gas.shader = fragmentShader;
     sun.scale = glm::vec3(2.2f, 2.2f, 2.2f);
-    gas.scale = glm::vec3(1.0f, 1.0f, 1.0f);
+    rocky.scale = glm::vec3(1.0f, 1.0f, 1.0f);
     moon.scale = glm::vec3(0.4f, 0.4f, 0.4f);
+    gas.scale = glm::vec3(1.6f, 1.6f, 1.6f);
 
-    //rings.scale = glm::vec3(0.4f, 0.4f, 0.4f);
-    //rings.shader = testShader;
-    //rings.setOrbit(gas.radius, gas.orbitSpeed);
+    rings.scale = glm::vec3(0.6f, 0.6f, 0.6f);
+    rings.shader = testShader;
+    rings.setOrbit(gas.radius, gas.orbitSpeed);
 
     planets.push_back(sun);
-    gas.moons.push_back(moon);
+    rocky.moons.push_back(moon);
+    planets.push_back(rocky);
     planets.push_back(gas);
     
     for( Planet& planet : planets ) {
@@ -284,9 +324,27 @@ int main(int argc, char* argv[]) {
     Uint32 frameStart, frameTime;
 
     initNoise();
+
+    //Load spaceship
+    vertices = {};
+    normals = {};
+    tex = {};
+    faces = {};
+
+    miscObj ship;
+
+    loaded = loadOBJ("Spaceship3.obj", vertices, faces, normals, tex);
+    std::vector<Vertex> shipVertexArray = setupVertexArray(vertices, faces, normals);
+    ship.vertexArray = shipVertexArray;
+    ship.scale = glm::vec3(0.07f, 0.07f, 0.07f);
+    ship.shader = ringShader;
  
     int time = 0;
-    float cameraAngle = 0;
+    float cameraAngle = M_PI;
+
+    camera.target = glm::vec3(camera.pos.x + 2.0f * sin(cameraAngle), 0.0f, camera.pos.z + 2.0f * cos(cameraAngle));
+
+    ship.setModel(cameraAngle, camera.target);
 
     while (running) {
 
@@ -299,27 +357,39 @@ int main(int argc, char* argv[]) {
             if (event.type == SDL_KEYDOWN) {
                  switch (event.key.keysym.sym) {
                     case SDLK_a:
-                        cameraAngle += 0.1f;
-                        camera.target = glm::vec3(camera.pos.x + 5.0f * sin(cameraAngle), 0.0f, camera.pos.z + 5.0f * cos(cameraAngle));
+                        cameraAngle += 0.08f;
+                        camera.target = glm::vec3(camera.pos.x + 2.0f * sin(cameraAngle), 0.0f, camera.pos.z + 2.0f * cos(cameraAngle));
                         break;
+
                     case SDLK_d:
-                        cameraAngle -= 0.1f;
-                        camera.target = glm::vec3(camera.pos.x + 5.0f * sin(cameraAngle), 0.0f, camera.pos.z + 5.0f * cos(cameraAngle));
+                        cameraAngle -= 0.08f;
+                        camera.target = glm::vec3(camera.pos.x + 2.0f * sin(cameraAngle), 0.0f, camera.pos.z + 2.0f * cos(cameraAngle));
                         break;
+
                     case SDLK_w:
-                        camera.pos.z -= 0.5f;
+                        camera.pos.z += 0.5f * cos(cameraAngle);
+                        camera.pos.x += 0.5f * sin(cameraAngle);
+                        camera.target.z += 0.5f * cos(cameraAngle);
+                        camera.target.x += 0.5f * sin(cameraAngle);
                         break;
+
                     case SDLK_s:
-                        camera.pos.z += 0.5f;
+                        camera.pos.z -= 0.5f * cos(cameraAngle);
+                        camera.pos.x -= 0.5f * sin(cameraAngle);
+                        camera.target.z -= 0.5f * cos(cameraAngle);
+                        camera.target.x -= 0.5f * sin(cameraAngle);
                         break;
 
                     case SDLK_g:
-                        camera.pos = glm::vec3(0.0f, 20.0f, 1.0f);
+                        camera.pos = glm::vec3(0.0f, 25.0f, 0.0f);
                         camera.target = glm::vec3(0.0f, 0.0f, 0.0f);
+                        camera.up = glm::vec3(0.0f, 0.0f, -1.0f);
                         break;
 
                     case SDLK_f:
-                        camera.pos = glm::vec3(-10.0f, 0.0f, 15.0f);
+                        camera.pos = glm::vec3(0.0f, 0.0f, 15.0f);
+                        camera.target = glm::vec3(0.0f, 0.0f, 13.0f);
+                        camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
                         break;
                 }
             }
@@ -340,12 +410,11 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        //camera.target = planets[1].translation;
-        //camera.pos = glm::vec3(planets[1].translation.x + 3.0f, 0.0f, planets[1].translation.z + 3.0f);
-        //camera.pos = glm::vec3(0.0f);
+        ship.setModel(cameraAngle, camera.target);
+        renderShip(ship, uniforms);
 
-        //rings.setModel(time);
-        //renderRings(rings, uniforms);
+        rings.setModel(time, planets[2].orbitSpeed);
+        renderRings(rings, uniforms);
 
         renderBuffer(renderer);
 
@@ -353,7 +422,7 @@ int main(int argc, char* argv[]) {
 
         if (frameTime > 0) {
             std::ostringstream titleStream;
-            titleStream << "FPS: " << 1000.0 / frameTime << ", FOV: " << fov << ", L -> x" << planets[1].translation.x << " y" << planets[1].translation.y << " z" << planets[1].translation.z;
+            titleStream << "FPS: " << 1000.0 / frameTime;
             SDL_SetWindowTitle(window, titleStream.str().c_str());
         }
 

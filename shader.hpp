@@ -82,7 +82,8 @@ Vertex vertexShaderPlanet(const Vertex& vertex, const Uniforms& uniforms, const 
         transformedNormal,
         vertex.tex,
         transformedWorldPos,
-        vertex.pos
+        vertex.pos,
+        clipSpaceVertex
     };
 }
 
@@ -218,6 +219,10 @@ Fragment laytheShader(Fragment& fragment) {
 }
 
 Fragment ringShader(Fragment& fragment) {
+
+    fragment.light = 1.0f - fragment.light;
+    fragment.light = (fragment.light < 0.2f) ? 0.2f : fragment.light;
+
     fragment.color = Color(
         fragment.color.r * fragment.light,
         fragment.color.g * fragment.light,
@@ -236,9 +241,9 @@ Fragment testShader(Fragment& fragment) {
     float oy = 1000.0f;
     float zoom = 800.0f;
 
-    glm::vec3 tmpColor(1.0f, 186.0f/255.0f, 73.0f/255.0f);
+    glm::vec3 tmpColor(249.0f/255.0f, 244.0f/255.0f, 162.0f/255.0f);
 
-    float cityLightNoise = cityNoise.GetNoise((pos.x + ox + 5000) * zoom, (pos.y + oy + 5000) * zoom, (pos.z + ox + 6000) * zoom);
+    float cityLightNoise = cityNoise.GetNoise((pos.x + ox + 4000) * zoom, (pos.y + oy + 4000) * zoom, (pos.z + ox + 5000) * zoom);
 
     fragment.color = Color(
         tmpColor.x * 255.0f * (1.0f - fabs(cityLightNoise)),

@@ -1,5 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <math.h>
 #include "uniforms.hpp"
 #include "camera.hpp"
 #include "shader.hpp"
@@ -91,6 +92,27 @@ struct Planet {
 
 };
 
+struct miscObj {
+    glm::mat4 model;
+    std::vector<Vertex> vertexArray;
+    Fragment (*shader)(Fragment&);
+    glm::vec3 translation;
+    glm::vec3 scale;
+
+    glm::vec3 calcLight(glm::vec3& L) {
+        return glm::normalize(translation - L);
+    }
+
+    void setModel(const float& angle, const glm::vec3& targetPos) {
+        translation = targetPos;
+        translation.y -= 0.25f;
+        model = glm::translate(glm::mat4(1.0f), translation);
+        model = glm::rotate(model, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+        model = glm::scale(model, scale);
+    }
+
+};
+
 struct PlanetaryRing {
     glm::mat4 model;
     std::vector<Vertex> vertexArray;
@@ -114,13 +136,13 @@ struct PlanetaryRing {
     }
 
     glm::vec3 calcLight(glm::vec3& L) {
-        return glm::normalize(translation- L);
+        return glm::normalize(translation - L);
     }
 
-    void setModel(const float& time) {
+    void setModel(const float& time, const float& parentSpeed) {
         setOrbitTranslate(time);
         model = glm::translate(glm::mat4(1.0f), translation);
-        model = glm::rotate(model, glm::radians(25.0f), glm::vec3(1.0f, 0.0f, 1.0f));
+        model = glm::rotate(model, glm::radians(parentSpeed * time) + 3.141592f, glm::vec3(0.0f, 1.0f, 0.0f));
         model = glm::scale(model, scale);
     }
 

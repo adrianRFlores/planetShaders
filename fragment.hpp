@@ -10,6 +10,7 @@ struct Vertex {
     glm::vec3 tex;
     glm::vec3 worldPos;
     glm::vec3 originalPos;
+    glm::vec4 clipSpace;
 };
 
 struct Fragment {
