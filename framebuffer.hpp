@@ -5,7 +5,7 @@
 #include "fragment.hpp"
 #include "FastNoiseLite.h"
 
-const int FRAMEBUFFER_WIDTH = 800, FRAMEBUFFER_HEIGHT = 800;
+const int FRAMEBUFFER_WIDTH = 750, FRAMEBUFFER_HEIGHT = 750;
 const int FRAMEBUFFER_SIZE = FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT;
 
 FastNoiseLite noiseGenerator;
@@ -44,8 +44,6 @@ void clearFramebuffer(int ox, int oy) {
     }
 
 }
-
-
 
 void point(const Fragment& f) {
     if (f.z < framebuffer[f.pos.y * FRAMEBUFFER_WIDTH + f.pos.x].z) {

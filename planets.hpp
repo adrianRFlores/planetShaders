@@ -16,6 +16,7 @@ struct Moon {
     glm::vec3 translation;
     glm::vec3 scale;
     glm::vec3 rotation;
+    Color orbitColor;
 
     void setOrbit(const unsigned int inRadius, const float inOrbitSpeed, const float inRotationSpeed) {
         radius = inRadius;
@@ -64,6 +65,7 @@ struct Planet {
     glm::vec3 scale;
     glm::vec3 rotation;
     std::vector<Moon> moons;
+    Color orbitColor;
 
     void setOrbit(const unsigned int inRadius, const float inOrbitSpeed, const float inRotationSpeed) {
         radius = inRadius;

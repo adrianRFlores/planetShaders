@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 #include "color.hpp"
+#include "uniforms.hpp"
 
 struct Vertex {
     glm::vec3 pos;
@@ -25,6 +26,26 @@ struct Fragment {
 struct zFragment {
     Color color;
     double z;
+};
+
+struct OrbitPoint {
+    glm::vec4 pos;
+    Color color;
+    float decayRate = 0.0075f;
+    float intensity = 1.0f;
+
+    glm::vec4 getScreenSpace(const Uniforms& uniforms) {
+        glm::vec4 clipSpaceVertex = uniforms.projection * uniforms.view * pos;
+
+        glm::vec3 ndcVertex = glm::vec3(clipSpaceVertex) / clipSpaceVertex.w;
+
+        return uniforms.viewport * glm::vec4(ndcVertex, 1.0f);
+    }
+
+    float decayLight() {
+        intensity -= decayRate;
+        return intensity;
+    }
 };
 
 std::vector<Fragment> fragmentLine(const glm::vec3& v1, const glm::vec3& v2) {

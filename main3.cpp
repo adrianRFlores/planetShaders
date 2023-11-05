@@ -21,8 +21,6 @@ glm::vec3 L(0.0f, 0.0f, 0.0f);
 const int cameraRadius = 1;
 const float angle = 0.00005f;
 
-std::vector<Fragment> orbitPoints;
-
 SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
 
@@ -86,10 +84,9 @@ std::pair<float, float> barycentricCoordinates(const glm::ivec2& P, const glm::v
 
 void filledTriangle(const Vertex& a, const Vertex& b, const Vertex& c, std::vector<Fragment>& fragments, const glm::vec3 Light) {
 
-  if( (a.clipSpace.z <= -0.5f && b.clipSpace.z <= -0.5f && c.clipSpace.z <= -0.5f) ){//|| 
-  //(a.clipSpace.w <= 0.0f && b.clipSpace.w <= 0.0f && c.clipSpace.w <= 0.0f) ){
+  if( (a.clipSpace.z <= -0.5f && b.clipSpace.z <= -0.5f && c.clipSpace.z <= -0.5f) || 
+  (a.clipSpace.w <= -0.5f && b.clipSpace.w <= -0.5f && c.clipSpace.w <= -0.5f) )
     return;
-  }
 
   glm::vec3 A = a.pos;
   glm::vec3 B = b.pos;
@@ -112,16 +109,16 @@ void filledTriangle(const Vertex& a, const Vertex& b, const Vertex& c, std::vect
       float u = barycentric.second;
       float epsilon = 1e-10;
 
+      double z2 = a.clipSpace.z * w + b.clipSpace.z * v + c.clipSpace.z * u;
+      double w2 = a.clipSpace.w * w + b.clipSpace.w * v + c.clipSpace.w * u;
+
+      if(z2 <= -5.0f && w2 <= -5.0f) continue;
+
       if (w < epsilon || v < epsilon || u < epsilon) continue;
 
       double z = A.z * w + B.z * v + C.z * u;
 
       if(z < epsilon) continue;
-
-      //double z2 = a.clipSpace.z * w + b.clipSpace.z * v + c.clipSpace.z * u;
-      //double w2 = a.clipSpace.w * w + b.clipSpace.w * v + c.clipSpace.w * u;
-
-      //if(z2 <= -5.0f && w2 <= -5.0f) continue;
 
       float intensity = glm::dot( glm::normalize( a.normal * w + b.normal * v + c.normal * u), Light );
 
@@ -246,6 +243,8 @@ int main(int argc, char* argv[]) {
 
     SDL_Init(SDL_INIT_EVERYTHING);
 
+    std::vector<OrbitPoint> oPoints;
+
     init();
     initStarNoise();
 
@@ -291,15 +290,19 @@ int main(int argc, char* argv[]) {
     sun.setOrbit(0, 2.0f, 1.5f);
     rocky.setOrbit(4, 1.3f, 2.0f);
     gas.setOrbit(9, 0.8f, 1.8f);
-    moon.setOrbit(1, 2.2f, 1.0f);
+    moon.setOrbit(1, 3.0f, 1.0f);
     sun.shader = sunShader;
     rocky.shader = joolShader;
     moon.shader = laytheShader;
     gas.shader = fragmentShader;
-    sun.scale = glm::vec3(2.2f, 2.2f, 2.2f);
-    rocky.scale = glm::vec3(1.0f, 1.0f, 1.0f);
-    moon.scale = glm::vec3(0.4f, 0.4f, 0.4f);
-    gas.scale = glm::vec3(1.6f, 1.6f, 1.6f);
+    sun.scale = glm::vec3(2.0f, 2.0f, 2.0f);
+    rocky.scale = glm::vec3(0.8f, 0.8f, 0.8f);
+    moon.scale = glm::vec3(0.25f, 0.25f, 0.25f);
+    gas.scale = glm::vec3(1.4f, 1.4f, 1.4f);
+    sun.orbitColor = Color(0, 0, 0);
+    rocky.orbitColor = Color(146, 180, 244);
+    moon.orbitColor = Color(238, 193, 112);
+    gas.orbitColor = Color(155, 126, 222);
 
     rings.scale = glm::vec3(0.6f, 0.6f, 0.6f);
     rings.shader = testShader;
@@ -333,7 +336,7 @@ int main(int argc, char* argv[]) {
 
     miscObj ship;
 
-    loaded = loadOBJ("Spaceship3.obj", vertices, faces, normals, tex);
+    loaded = loadOBJ("nave2.obj", vertices, faces, normals, tex);
     std::vector<Vertex> shipVertexArray = setupVertexArray(vertices, faces, normals);
     ship.vertexArray = shipVertexArray;
     ship.scale = glm::vec3(0.07f, 0.07f, 0.07f);
@@ -345,6 +348,8 @@ int main(int argc, char* argv[]) {
     camera.target = glm::vec3(camera.pos.x + 2.0f * sin(cameraAngle), 0.0f, camera.pos.z + 2.0f * cos(cameraAngle));
 
     ship.setModel(cameraAngle, camera.target);
+
+    uniforms.view = createViewMatrix(camera);
 
     while (running) {
 
@@ -359,11 +364,13 @@ int main(int argc, char* argv[]) {
                     case SDLK_a:
                         cameraAngle += 0.08f;
                         camera.target = glm::vec3(camera.pos.x + 2.0f * sin(cameraAngle), 0.0f, camera.pos.z + 2.0f * cos(cameraAngle));
+                        uniforms.view = createViewMatrix(camera);
                         break;
 
                     case SDLK_d:
                         cameraAngle -= 0.08f;
                         camera.target = glm::vec3(camera.pos.x + 2.0f * sin(cameraAngle), 0.0f, camera.pos.z + 2.0f * cos(cameraAngle));
+                        uniforms.view = createViewMatrix(camera);
                         break;
 
                     case SDLK_w:
@@ -371,6 +378,7 @@ int main(int argc, char* argv[]) {
                         camera.pos.x += 0.5f * sin(cameraAngle);
                         camera.target.z += 0.5f * cos(cameraAngle);
                         camera.target.x += 0.5f * sin(cameraAngle);
+                        uniforms.view = createViewMatrix(camera);
                         break;
 
                     case SDLK_s:
@@ -378,43 +386,80 @@ int main(int argc, char* argv[]) {
                         camera.pos.x -= 0.5f * sin(cameraAngle);
                         camera.target.z -= 0.5f * cos(cameraAngle);
                         camera.target.x -= 0.5f * sin(cameraAngle);
+                        uniforms.view = createViewMatrix(camera);
                         break;
 
                     case SDLK_g:
                         camera.pos = glm::vec3(0.0f, 25.0f, 0.0f);
                         camera.target = glm::vec3(0.0f, 0.0f, 0.0f);
                         camera.up = glm::vec3(0.0f, 0.0f, -1.0f);
+                        uniforms.view = createViewMatrix(camera);
                         break;
 
                     case SDLK_f:
                         camera.pos = glm::vec3(0.0f, 0.0f, 15.0f);
                         camera.target = glm::vec3(0.0f, 0.0f, 13.0f);
                         camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
+                        cameraAngle = M_PI;
+                        uniforms.view = createViewMatrix(camera);
                         break;
                 }
             }
         }
 
-        uniforms.view = createViewMatrix(camera);
-
         clearFramebuffer(100, 10);
+
+        std::vector<OrbitPoint> newPoints;
+
+        for(int i = 0; i<oPoints.size(); i++) {
+            if(oPoints[i].decayLight() > 0.0f) {
+                glm::vec3 pointPos = glm::vec3(oPoints[i].getScreenSpace(uniforms));
+                glm::vec4 clipSpace = uniforms.projection * uniforms.view * oPoints[i].pos;
+                if( clipSpace.z <= -0.5f || clipSpace.w <= 0.5f ) continue;
+                point( Fragment {
+                        glm::ivec2(pointPos),
+                        pointPos,
+                        pointPos,
+                        pointPos.z,
+                        Color(oPoints[i].color.r * oPoints[i].intensity, oPoints[i].color.g * oPoints[i].intensity, oPoints[i].color.b * oPoints[i].intensity),
+                        oPoints[i].intensity
+                    }
+                );
+                newPoints.push_back(oPoints[i]);
+            }
+        }
+
+        oPoints = newPoints;
 
         time++;
         #pragma omp parallel for
         for ( int i = 0; i < planets.size() ; i++ ) {
             planets[i].setModel(time);
             renderPlanet(planets[i], uniforms);
+
+            oPoints.push_back(OrbitPoint{glm::vec4(planets[i].translation, 1.0f), planets[i].orbitColor});
+
             for( int j = 0; j < planets[i].moons.size(); j++ ) {
                 planets[i].moons[j].setModel(time, planets[i].translation);
                 renderMoon(planets[i].moons[j], uniforms, planets[i].translation);
+
+                oPoints.push_back(OrbitPoint{glm::vec4(planets[i].moons[j].translation, 1.0f), planets[i].moons[j].orbitColor});
             }
         }
 
         ship.setModel(cameraAngle, camera.target);
-        renderShip(ship, uniforms);
-
         rings.setModel(time, planets[2].orbitSpeed);
-        renderRings(rings, uniforms);
+
+        #pragma omp parallel 
+        #pragma omp single 
+        {
+            #pragma omp task
+            renderShip(ship, uniforms);
+
+            #pragma omp task
+            renderRings(rings, uniforms);
+
+        }
 
         renderBuffer(renderer);
 
