@@ -272,7 +272,7 @@ int main(int argc, char* argv[]) {
     uniforms.projection = createProjectionMatrix(fov, FRAMEBUFFER_WIDTH / FRAMEBUFFER_HEIGHT, 1.0f, 1000.0f);
     uniforms.viewport = createViewportMatrix(FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT);
 
-    Planet sun, rocky, gas;
+    Planet sun, rocky, gas, lean;
     Moon moon;
     PlanetaryRing rings;
 
@@ -288,21 +288,25 @@ int main(int argc, char* argv[]) {
     std::vector<Planet> planets;
 
     sun.setOrbit(0, 2.0f, 1.5f);
-    rocky.setOrbit(4, 1.3f, 2.0f);
+    rocky.setOrbit(3.5, 1.3f, 2.0f);
     gas.setOrbit(9, 0.8f, 1.8f);
+    lean.setOrbit(6.5, 1.0f, 1.7f);
     moon.setOrbit(1, 3.0f, 1.0f);
     sun.shader = sunShader;
     rocky.shader = joolShader;
     moon.shader = laytheShader;
-    gas.shader = fragmentShader;
+    gas.shader = gasShader;
+    lean.shader = marsShader;
     sun.scale = glm::vec3(2.0f, 2.0f, 2.0f);
     rocky.scale = glm::vec3(0.8f, 0.8f, 0.8f);
     moon.scale = glm::vec3(0.25f, 0.25f, 0.25f);
     gas.scale = glm::vec3(1.4f, 1.4f, 1.4f);
+    lean.scale = glm::vec3(0.6f, 0.6f, 0.6f);
     sun.orbitColor = Color(0, 0, 0);
     rocky.orbitColor = Color(146, 180, 244);
     moon.orbitColor = Color(238, 193, 112);
-    gas.orbitColor = Color(155, 126, 222);
+    gas.orbitColor = Color(97, 231, 134);
+    lean.orbitColor = Color(151, 146, 227);
 
     rings.scale = glm::vec3(0.6f, 0.6f, 0.6f);
     rings.shader = testShader;
@@ -312,6 +316,7 @@ int main(int argc, char* argv[]) {
     rocky.moons.push_back(moon);
     planets.push_back(rocky);
     planets.push_back(gas);
+    planets.push_back(lean);
     
     for( Planet& planet : planets ) {
         planet.vertexArray = vertexArray;

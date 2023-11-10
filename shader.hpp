@@ -11,6 +11,7 @@ FastNoiseLite joolNoise;
 FastNoiseLite joolNoise2;
 FastNoiseLite laytheNoise;
 FastNoiseLite cityNoise;
+FastNoiseLite gasNoise;
 
 glm::vec3 sunColor(115.0f/255.0f, 92.0f/255.0f, 221.0f/255.0f);
 glm::vec3 joolColor1(99.0f/255.0f, 76.0f/255.0f, 58.0f/255.0f);
@@ -18,6 +19,10 @@ glm::vec3 sandColor(201.0f/255.0f, 179.0f/255.0f, 122.0f/255.0f);
 glm::vec3 joolColor2(47.0f/255.0f, 125.0f/255.0f, 210.0f/255.0f);
 glm::vec3 dwarfColor(189.0f/255.0f, 151.0f/255.0f, 117.0f/255.0f);
 glm::vec3 dwarfColorBasin(103.0f/255.0f, 80.0f/255.0f, 62.0f/255.0f);
+glm::vec3 gasColor(143.0f/255.0f, 179.0f/255.0f, 57.0f/255.0f);
+glm::vec3 leanWater(233.0f/255.0f, 214.0f/255.0f, 236.0f/255.0f);
+glm::vec3 leanRocks(82.0f/255.0f, 52.0f/255.0f, 104.0f/255.0f);
+glm::vec3 leanRocks2(44.0f/255.0f, 24.0f/255.0f, 58.0f/255.0f);
 
 void initNoise( ) {
     
@@ -62,6 +67,13 @@ void initNoise( ) {
     cityNoise.SetCellularJitter(0.9f);
     cityNoise.SetDomainWarpType(FastNoiseLite::DomainWarpType_OpenSimplex2);
     cityNoise.SetDomainWarpAmp(55.0f);
+
+    gasNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2S);
+    gasNoise.SetFrequency(0.02f);
+    gasNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    gasNoise.SetFractalLacunarity(1.8f);
+    gasNoise.SetDomainWarpType(FastNoiseLite::DomainWarpType_OpenSimplex2);
+    gasNoise.SetDomainWarpAmp(60.0f);
 
 }
 
@@ -239,9 +251,9 @@ Fragment testShader(Fragment& fragment) {
 
     float ox = 1000.0f;
     float oy = 1000.0f;
-    float zoom = 800.0f;
+    float zoom = 900.0f;
 
-    glm::vec3 tmpColor(249.0f/255.0f, 244.0f/255.0f, 162.0f/255.0f);
+    glm::vec3 tmpColor(235.0f/255.0f, 210.0f/255.0f, 180.0f/255.0f);
 
     float cityLightNoise = cityNoise.GetNoise((pos.x + ox + 4000) * zoom, (pos.y + oy + 4000) * zoom, (pos.z + ox + 5000) * zoom);
 
@@ -249,6 +261,53 @@ Fragment testShader(Fragment& fragment) {
         tmpColor.x * 255.0f * (1.0f - fabs(cityLightNoise)),
         tmpColor.y * 255.0f * (1.0f - fabs(cityLightNoise)),
         tmpColor.z * 255.0f * (1.0f - fabs(cityLightNoise)),
+        fragment.color.a
+    );
+
+    return fragment;
+}
+
+Fragment gasShader(Fragment& fragment) {
+    glm::vec3 pos = fragment.originalPos;
+
+    float ox = 1000.0f;
+    float oy = 1000.0f;
+    float zoom = 400.0f;
+
+    float gasPlanetNoise = cityNoise.GetNoise((pos.x + ox + 1000) * zoom, (pos.y + oy + 1000) * zoom, (pos.z + ox + 2000) * zoom);
+
+    glm::vec3 tmpColor = glm::mix(gasColor, glm::vec3(75.0f/255.0f, 112.0f/255.0f, 66.0f/255.0f), gasPlanetNoise - 0.3f);
+
+    fragment.color = Color(
+        tmpColor.r * 255.0f * fragment.light,
+        tmpColor.g * 255.0f * fragment.light,
+        tmpColor.b * 255.0f * fragment.light,
+        fragment.color.a
+    );
+
+    return fragment;
+}
+
+Fragment marsShader(Fragment& fragment) {
+    glm::vec3 pos = fragment.originalPos;
+    float ox = 1000.0f;
+    float oy = 1000.0f;
+    float zoom = 1000.0f;
+
+    float noise = laytheNoise.GetNoise((pos.x + ox + 1000) * zoom, (pos.y + oy + 1000) * zoom, (pos.z + ox + 2000) * zoom);
+
+    glm::vec3 tmpColor;
+
+    if(noise > 0.3f) {
+        tmpColor = leanWater;
+    } else {
+        tmpColor = glm::mix(leanRocks, leanRocks2, (noise - 0.3f)/0.7f);
+    }
+
+    fragment.color = Color(
+        tmpColor.r * 255.0f * fragment.light,
+        tmpColor.g * 255.0f * fragment.light,
+        tmpColor.b * 255.0f * fragment.light,
         fragment.color.a
     );
 
